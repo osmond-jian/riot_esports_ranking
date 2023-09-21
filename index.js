@@ -1,112 +1,64 @@
-//this lets nodejs work with files
 const fs = require('fs');
-let targetYear = '2023';
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
-// list of functions, written in javascript for now
+const { getTournamentsFromLeagueId } = require('./commands/leagueToTournaments');
+const { tournamentLookup } = require('./commands/tournamentLookup');
+const { rawDataToCookedData } = require('./commands/matchToDataArray');
+// const { csvmaker } = require('commands/jsonToCSV.js'); //no longer needed with csvwriter package
+// const { csvwriter } = require('./commands/write_csv_file');
+const { teamLookup } = require('./commands/teamLookup');
 
 
 
-//this function takes a gameID (specifically platformGameId) and returns some stats on the game
-async function gameLookup (gameID){
-  const gameFileName = gameID.replace(/:/g, '_');
-
-  fs.readFile(`games/${gameFileName}.json`, function(error, data){
-    if (error) throw error;
-    const game = JSON.parse(data);
-    console.log(game[0].participants);
+// Define the CSV writer
+const csvWriter = createCsvWriter({
+    path: 'output.csv', // Specify the output file name
+    header: [
+      { id: 'leagueName', title: 'League Name' },
+      { id: 'date', title: 'Date' }, 
+      { id: 'stageName', title: 'Stage' },
+      { id: 'sectionName', title: 'Section' },     
+      { id: 'gameOrder', title: 'Game Number' },
+      { id: 'esportsGameId', title: 'Game Id' },
+      { id: 'blueSideTeam', title: 'Blue Team' },
+      { id: 'blueSideWin', title: 'Outcome' },
+      { id: 'redSideTeam', title: 'Red Team' },
+      { id: 'redSideWin', title: 'Outcome' },
+    ],
   });
-}
 
-// async function tournamentLookup (leagueID){
-//   //get tournament, and all the teams, and the records after putting in League ID(e.g. lcs)
-//   let finalDataArray = [];
-//   let finalData = {};
+function godFunction (leagueId) {
+    const tournamentIds = getTournamentsFromLeagueId(leagueId);
+    // console.log(tournamentIds);
+    const matchData = tournamentLookup(tournamentIds);
+    // console.log(matchData);
+    // const csvString = await csvmaker(matchData);
+    // await csvwriter.writeRecords(matchData);
 
-//   await fs.readFile('esports-data/tournaments.json', function(error, data){
-//     if (error) throw error;
-//     const tournamentLists = JSON.parse(data);
-//     const year = tournamentLists.filter((obj)=> obj.startDate.includes(targetYear))
-//     const finalFilterList = year.includes((obj) => obj.leagueId = leagueID);
-
-//     if (finalFilterList) {
-//       //check this, can probably refactor ):
-//       finalFilterList.stages.forEach((object)=>{
-//         object.sections.forEach((element)=>{
-//           finalData.team1Id = element.matches[1].id
-//           finalData.team1Record = element.matches[1].record
-//           finalData.team2Id = element.matches[3].id
-//           finalData.team2Record = element.matches[3].record
-//           finalDataArray.push(finalData);
-//         })
-//         console.log(finalDataArray);
-//         return(finalDataArray);
-//       });
-//     }
-//   })
-// }
-
-
-//chatgpt was cooking here
-
-async function tournamentLookup(leagueID) {
-  return new Promise((resolve, reject) => {
-    fs.readFile('esports-data/tournaments.json', function (error, data) {
-      if (error) {
-        reject(error);
-      } else {
-        const tournamentLists = JSON.parse(data);
-        const year = tournamentLists.filter((obj) => obj.startDate.includes(targetYear));
-        const finalFilterList = year.filter((obj) => obj.leagueId === leagueID);
-        // console.log (JSON.stringify(finalFilterList));
-
-        if (finalFilterList.length > 0) {
-          const finalDataArray = [];
-          finalFilterList.forEach((object) => {
-            const name = object.slug;
-            object.stages.forEach((stage) => {
-              stage.sections.forEach((element) => {
-                element.matches.forEach((element) => {
-                // console.log(JSON.stringify(element.matches[1]));
-                  finalDataArray.push({
-                    name: name,
-                    team1Id: element.teams[1].id,
-                    team1Record: element.teams[1].record,
-                  });
-                })
-              });
-            });
-          });
-          console.log(finalDataArray);
-          resolve(finalDataArray);
-        } else {
-          console.log('No matching tournaments found.');
-          resolve([]);
-        }
-      }
+    const cookedData = rawDataToCookedData(matchData);
+    csvWriter
+        .writeRecords(cookedData)
+        .then(() => {
+        console.log('CSV file has been written successfully');
+        })
+    .catch((error) => {
+    console.error('Error writing CSV file:', error);
     });
-  });
 }
 
-async function teamsLookup (tournamentID) {
+// godFunction('108001239847565215');
+godFunction('98767991299243165');
 
-  fs.readFile('esports-data/teams.json', function(error, data){
-    if(error) throw error;
-    const teamLists = JSON.parse(data);
-    return(teamLists)
-  })
+function getAllLeagues(){
+    let leagueArray = [];
+    const allLeagues = fs.readFile('esports-data/leagues.json', function(error, data){
+        if (error) throw error;
+        const leagues = JSON.parse(data);
+        console.log(`There are currently ${leagues.length} leagues to choose from.`)
+        leagues.forEach((obj) => leagueArray.push({name:obj.name, leagueId:obj.id}));
+        console.log(leagueArray);
+        return leagueArray;
+    });
 }
 
-// gameLookup('ESPORTSTMNT01_3294091');
-// tournamentLookup('98767991299243165');
-
-
-
-// Call the function and handle the promises
-tournamentLookup('98767991299243165')
-  .then((data) => {
-    // Do something with the data if needed
-    console.log('Tournament Data:', data);
-  })
-  .catch((error) => {
-    console.error('Error:', error);
-  });
+// getAllLeagues();
