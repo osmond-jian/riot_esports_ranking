@@ -2,6 +2,7 @@ const fs = require('fs');
 
 
 //takes in an array with tournament IDs, and returns the game metadata for the tournaments.
+//NOTE: currently the function synchronously reads your file directly with node.fs
 function tournamentLookup(tournamentArray) {
   // console.log(tournamentArray[0].id);
   let output = [];

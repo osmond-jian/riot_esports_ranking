@@ -4,15 +4,13 @@ const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const { getTournamentsFromLeagueId } = require('./commands/leagueToTournaments');
 const { tournamentLookup } = require('./commands/tournamentLookup');
 const { rawDataToCookedData } = require('./commands/matchToDataArray');
-// const { csvmaker } = require('commands/jsonToCSV.js'); //no longer needed with csvwriter package
-// const { csvwriter } = require('./commands/write_csv_file');
-const { teamLookup } = require('./commands/teamLookup');
+// const { teamLookup } = require('./commands/teamLookup'); //may not need until it is called in future iterations
 
 
 
-// Define the CSV writer
+// Define the CSV writer and header names for the csv file
 const csvWriter = createCsvWriter({
-    path: 'output.csv', // Specify the output file name
+    path: 'output.csv', // Specify the output file name, should be in the same folder as index.js
     header: [
       { id: 'leagueName', title: 'League Name' },
       { id: 'date', title: 'Date' }, 
@@ -28,14 +26,13 @@ const csvWriter = createCsvWriter({
   });
 
 function godFunction (leagueId) {
+    //input league Id (e.g. LCS), and get an array of tournament Ids (regular season, playoffs)
     const tournamentIds = getTournamentsFromLeagueId(leagueId);
-    // console.log(tournamentIds);
+    //input array of tournament ids, iterate through array and return game data for each tournament Id
     const matchData = tournamentLookup(tournamentIds);
-    // console.log(matchData);
-    // const csvString = await csvmaker(matchData);
-    // await csvwriter.writeRecords(matchData);
-
+    //send raw data (array of objects) from the esports-data json and prepares it for the csv writer function
     const cookedData = rawDataToCookedData(matchData);
+    //let the csv writer cook
     csvWriter
         .writeRecords(cookedData)
         .then(() => {
@@ -47,8 +44,9 @@ function godFunction (leagueId) {
 }
 
 // godFunction('108001239847565215');
-godFunction('98767991299243165');
+godFunction('98767991299243165'); //this calls the function, the id is for LCS
 
+//not used yet, but this function will return all the different leagues and their Ids to choose from when you run it, so you don't have to look up the id every time.
 function getAllLeagues(){
     let leagueArray = [];
     const allLeagues = fs.readFile('esports-data/leagues.json', function(error, data){

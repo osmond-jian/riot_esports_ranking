@@ -1,20 +1,8 @@
 const fs = require('fs');
 
-// async function getTournamentsFromLeagueId (id) {
-//     try {
-//         const data = await fs.readFile('esports-data/leagues.json', function(error,data){
-//             if (error) throw error;
-//             const league = JSON.parse(data).filter((obj) => obj.id === id);
-//             // console.log(league[0].tournaments);
-//             return league[0].tournaments;
-//         })
-//     } catch (error) {
-//         console.error("Error!", error);
-//         throw error;
-//     }
-// }
-
 //takes in an array with tournament IDs, and returns the game metadata for the tournaments.
+
+//NOTE: This function currently uses the node.fs package to directly access the files synchronously
 function getTournamentsFromLeagueId(id) {
     const data = fs.readFileSync('esports-data/leagues.json', {encoding:'utf8', flag: 'r'})
       const leagueArray = JSON.parse(data).filter((obj) => obj.id === id);

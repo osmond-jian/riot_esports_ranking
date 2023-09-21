@@ -68,28 +68,32 @@
 //     },
 // ]
 const fs = require('fs');
-// const { teamLookup } = require('./teamLookup.js');
 
+//this function takes in the raw data (as you can see in test array above) and prepares it for csv maker
 function rawDataToCookedData(arrayOfObjects){
     // console.log(arrayOfObjects);
     const finalArray = [];
     for (i=0; i<arrayOfObjects.length; i++) {
+        //The first entry from tournamentLookup should include an object with just League name and date. This checks if the object is the entry that just contains the league metadata
         if (arrayOfObjects[i].leagueName) {
             finalArray.push(
                 {
                     leagueName:arrayOfObjects[i].leagueName,
                     date: arrayOfObjects[i].date,
                 });
+        //every time the "stage" section is segmented, a different object is pushed in and will be captured here. This is the single column with the name of the Stage (e.g. groups, playoffs)
         } else if (arrayOfObjects[i].stageName) {
             finalArray.push(
                 {
                     stageName:arrayOfObjects[i].stageName,
                 });
+        //same thing but for section (e.g. group A, semifinals)
         } else if (arrayOfObjects[i].sectionName){
             finalArray.push(
                 {
                     sectionName:arrayOfObjects[i].sectionName,
                 });
+        //configuring the regular array into the final object
         } else if (arrayOfObjects[i].state === "completed"){
             let newObject = {
                 esportsGameId: arrayOfObjects[i].id,
@@ -101,6 +105,7 @@ function rawDataToCookedData(arrayOfObjects){
             };
             finalArray.push(newObject);
         } else {
+            //no game found with tournament data - maybe riot deemed it non-competitive (e.g. TFT game, rift rivals) or maybe there was no game (e.g. the 3rd game in a Bo3 that ended in 2-0 but still had a data entry)
             console.log('null game');
         }
     }
@@ -122,10 +127,7 @@ function teamLookup(teamId){
 
 // rawDataToCookedData(testArray);
 
-// module.exports = { rawDataToCookedData, };
-
-
 // teamLookup('106857739520697600');
-// // teamLookup('99566406065437842');
+// teamLookup('99566406065437842');
 
 module.exports = { rawDataToCookedData, teamLookup, };
