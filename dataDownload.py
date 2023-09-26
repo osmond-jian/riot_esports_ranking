@@ -29,6 +29,24 @@ def download_gzip_and_write_to_json(file_name):
    else:
        print(f"Failed to download {file_name}")
 
+def download_gzip_and_load_json(file_name):
+    local_file_name = file_name.replace(":", "_")
+   # If file already exists locally do not re-download game
+    if os.path.isfile(f"{local_file_name}.json"):
+       with open(f"{local_file_name}.json", "r") as json_file:
+           return json.load(json_file)
+    response = requests.get(f"{S3_BUCKET_URL}/{file_name}.json.gz")
+    if response.status_code == 200:
+       try:
+           gzip_bytes = BytesIO(response.content)
+           with gzip.GzipFile(fileobj=gzip_bytes, mode="rb") as gzipped_file:
+               json_data = json.loads(gzipped_file.read().decode("utf-8"))
+               return json_data
+       except Exception as e:
+           print("Error:", e)
+    else:
+       print(f"Failed to download {file_name}")
+       return None
 
 def download_esports_files():
    directory = "esports-data"
@@ -38,6 +56,20 @@ def download_esports_files():
    esports_data_files = ["leagues", "tournaments", "players", "teams", "mapping_data"]
    for file_name in esports_data_files:
        download_gzip_and_write_to_json(f"{directory}/{file_name}")
+
+def read_esports_files():
+   directory = "esports-data"
+   if not os.path.exists(directory):
+       os.makedirs(directory)
+
+   esports_data_files = ["leagues", "tournaments", "players", "teams", "mapping_data"]
+   for file_name in esports_data_files:
+       data = download_gzip_and_load_json(f"{directory}/{file_name}")
+       if data:
+           # Inspect the structure of the loaded data
+           print(f"Structure of {file_name}:")
+           print(json.dumps(data, indent=2))
+           # You can add data transformation logic here if needed
 
 
 def download_games(year):
@@ -83,5 +115,6 @@ def download_games(year):
 
 
 if __name__ == "__main__":
-   download_esports_files()
-   download_games(2023)
+    #read_esports_files()
+    download_esports_files()
+   #download_games(2023)
