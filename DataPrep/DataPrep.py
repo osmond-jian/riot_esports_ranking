@@ -2,109 +2,126 @@ import numpy as np
 import pandas as pd
 import json
 import sys
+import mapping as mp
+import logging
+sys.path.append("./")
 
-def create_map(data:list,id:str,name:str)-> dict:
-    """Function to create a mapping from id to name.  Will be utilized to create a mapping for
-    teams, players, tournament names, league names
+import Modelling.Simple.elo as elo
 
-    Args:
-        data (list): list of dictionaries containing the id as the key
-        id (str): key for id
-        name (str): key for associated name
+# Create a logger
+logger = logging.getLogger('mylogger')
+logger.setLevel(logging.DEBUG)
 
-    Returns:
-        dict: key-value pairs such that id:name.  Will be used in various data structures to map the correct names
-    """
-    id_map = {entry[id]: entry[name] for entry in data}
-    return id_map
+# Create a file handler
+fh = logging.FileHandler('mylog.log')
+fh.setLevel(logging.DEBUG)
 
-def id_to_handle(indices, player_id_map):
-    return {index: player_id_map[player_id] for index, player_id in indices.items() if player_id in player_id_map}
+# Create a console handler
+ch = logging.StreamHandler()
+ch.setLevel(logging.ERROR)
 
+# Create a formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(formatter)
+ch.setFormatter(formatter)
 
-
-        
+# Add handlers to the logger
+logger.addHandler(fh)
+logger.addHandler(ch)       
 
 if __name__ == "__main__":
-    ### Creating player mapping tables for reference
-    sys.path.append("..")
-    with open(f'C:/Users/akmar/PycharmProjects/lolpowerrank/riot_esports_ranking/esports-data/players.json', 'r') as f:
-        player_data = json.load(f)
+    ### Run this to get data to upload to S3 bucket to continue analysis and modelling
+    
+    # Load all the data
+    filepath = f"C:/Users/akmar/PycharmProjects/lolpowerrank/riot_esports_ranking/esports-data/"
 
-    player_map = create_map(player_data,'player_id','handle')
+    map_data = mp.game_mapping(filepath=filepath)
+    map_data = mp.player_mapping(map_data,filepath)
+    map_data = mp.team_mapping(map_data,filepath)
 
-    ### Creating Team mapping table
-    with open(f'C:/Users/akmar/PycharmProjects/lolpowerrank/riot_esports_ranking/esports-data/teams.json', 'r') as f:
-        team_data = json.load(f)
+    league_data = mp.league_mapping(filepath)
 
-    team_map = create_map(team_data,'team_id','slug')
+    tournament_data = mp.tournament_mapping(filepath)
 
+    # Merges
+    tournament_data =  tournament_data.merge(map_data,how="left",left_on='game_id',right_on='esportsGameId')
+    tournament_data = tournament_data.merge(league_data,how="left",on='tournament_id')
+    #tournament_data.to_parquet("combined_data_raw.parquet")
 
-    ### Creating a tournament df by making tables of the nested data
-    with open(f'C:/Users/akmar/PycharmProjects/lolpowerrank/riot_esports_ranking/esports-data/tournaments.json', 'r') as f:
-        data = json.load(f)
+    # Data Validation
+    t_d_unique = set(tournament_data['game_id'])
+    m_d_unique = set(map_data['esportsGameId'])
+    t_d_diff = t_d_unique.difference(m_d_unique)
+    m_d_diff = m_d_unique.difference(t_d_unique)
 
+    logger.info(f"Game_id in Tournament Data not in Mapping Data: {t_d_diff}")
+    logger.info(f"esportsGameId in Mapping Data not in Tournament Data: {t_d_diff}")
 
-    # Adjusted extraction to handle potential None values in team_info['record']
+    t_d_unique_2 = set(tournament_data['tournament_id'])
+    l_d_unique_2 = set(league_data['tournament_id'])
+    t_d_diff_2 = t_d_unique_2.difference(l_d_unique_2)
+    l_d_diff = l_d_unique_2.difference(t_d_unique_2)
 
-    flattened_data_games = []
-    flattened_data_with_teams = []
+    logger.info(f"Tournament_id in Tournament Data not in League Data: {t_d_diff_2}")
+    logger.info(f"Tournament_id in League Data not in Tournament Data: {l_d_diff}")
+    
+    with open("tournament_unique.txt", "w") as output:
+        output.write(str(t_d_diff))
+    
+    with open("map_unique.txt", "w") as output:
+        output.write(str(m_d_diff))
 
-    # Loop through each tournament
-    for tournament in data:
-        # Extract tournament information
-        tournament_info = {key: tournament[key] for key in ['id', 'leagueId', 'slug', 'startDate', 'endDate']}
-        
-        # Loop through each stage in the tournament
-        for stage in tournament.get('stages', []):
-            stage_info = {key: stage[key] for key in ['slug']}
-            
-            # Loop through each section in the stage
-            for section in stage.get('sections', []):
-                # Loop through each match in the section
-                for match in section.get('matches', []):
-                    match_id = match['id']
-                    match_state = match['state']
-                    match_strategy = match['strategy']['type']
-                    match_count = match['strategy']['count']
-                    team_info = match.get('teams', [])
-                    
-                    # Extract game information and include match_id
-                    for game in match.get('games', []):
-                        game_team_info = game.get('teams',[])
-                        flattened_data_games.append({
-                            'game_id' : game['id'],
-                            'game_state' : game['state'],
-                            'game_number' : game['number'],
-                            'team1_id' : game_team_info[0]['id'] if len(game_team_info) > 0 else None,
-                            'team1_side' : game_team_info[0]['side'] if len(game_team_info) > 0 else None,
-                            'team1_result' : game_team_info[0]['result']['outcome'] if game_team_info[0]['result'] is not None else None,
-                            'team2_id' : game_team_info[1]['id'] if len(game_team_info) > 1 else None,
-                            'team2_side' : game_team_info[1]['side'] if len(game_team_info) > 1 else None,
-                            'team2_result' : game_team_info[1]['result']['outcome'] if game_team_info[1]['result'] is not None else None,
-                            # 'match_id': match_id,
-                            # 'match_state': match_state,
-                            # "match_strategy" : match_strategy,
-                            # 'match_count':match_count,
+    with open("tournament_unique2.txt", "w") as output:
+        output.write(str(t_d_diff_2))
+    
+    with open("league_unique.txt", "w") as output:
+        output.write(str(l_d_diff))
+    
+    # update logger to count how many unique games and how many are missing and the proportion
+    # do some adhoc analysis
+    # save the list of missing games for analysis in mapping
+    # make the game record work
+    #tournament_data.sample(20).to_csv("raw_data_sample.csv")
 
+    # Clean Data
 
-                            **tournament_info,
-                            **stage_info
-                        })
+    col_list = [
+    'teammapping_200',
+    'teammapping_100',
+    'participantmapping_3',
+    'participantmapping_5',
+    'participantmapping_10',
+    'participantmapping_2',
+    'participantmapping_1',
+    'participantmapping_9',
+    'participantmapping_7',
+    'participantmapping_8',
+    'participantmapping_6',
+    'participantmapping_4',
+    'id',
+    'name',
+    'image',
+    'lightImage',
+    'darkImage',
+    'priority',
+    'displayPriority']
 
+    df = tournament_data.drop(columns=col_list)
 
-    # Convert the flattened data to DataFrames
-    df_games_with_match_id = pd.DataFrame(flattened_data_games)
-    #df_teams_info_with_match_id = pd.DataFrame(flattened_data_with_teams)
+    # rename and reorder data
+    # check missing rows
+    # need to do some work for LPL mapping
 
-    # Ensuring the 'tournament_id' column is correctly labeled in both DataFrames
-    df_games_with_match_id.rename(columns={'id': 'tournament_id'}, inplace=True)
-    #df_teams_info_with_match_id.rename(columns={'id': 'tournament_id'}, inplace=True)
+    df.to_parquet("combined_data.parquet")
 
-    # Merge the two dataframes based on only the match_id column
-    #df_simplified_merge = pd.merge(df_games_with_match_id, df_teams_info_with_match_id, on='match_id', how='inner')
+    ## Scoring the data
+    
+    teams_list = pd.concat([df['team1_id'], df['team2_id']]).unique()
+    
+    # initialize elo ratings
+    elo_ratings = elo.initialize_elo_ratings(teams_list)
 
-    # Display the merged dataframe
-    df_games_with_match_id.to_csv("df_simplified.csv")
+    # calculate Elo ratings over time
+    elo_df = elo.elo_ratings_over_time(df.sort_values(['startDate']),elo_ratings)
 
-
+    elo_df.to_csv('combined_data_uncleaned_v1.csv')
