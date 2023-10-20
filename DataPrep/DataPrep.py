@@ -55,7 +55,7 @@ if __name__ == "__main__":
     m_d_diff = m_d_unique.difference(t_d_unique)
 
     logger.info(f"Game_id in Tournament Data not in Mapping Data: {t_d_diff}")
-    logger.info(f"esportsGameId in Mapping Data not in Tournament Data: {t_d_diff}")
+    logger.info(f"esportsGameId in Mapping Data not in Tournament Data: {m_d_diff}")
 
     t_d_unique_2 = set(tournament_data['tournament_id'])
     l_d_unique_2 = set(league_data['tournament_id'])
