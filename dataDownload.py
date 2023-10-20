@@ -53,7 +53,9 @@ def download_esports_files():
    if not os.path.exists(directory):
        os.makedirs(directory)
 
-   esports_data_files = ["leagues", "tournaments", "players", "teams", "mapping_data"]
+   esports_data_files = ["leagues", "tournaments", "players", "teams", "mapping_data",
+                         "tournaments_without_game_data", "unfiltered_players",
+                         "unfiltered_teams"]
    for file_name in esports_data_files:
        download_gzip_and_write_to_json(f"{directory}/{file_name}")
 
@@ -62,7 +64,9 @@ def read_esports_files():
    if not os.path.exists(directory):
        os.makedirs(directory)
 
-   esports_data_files = ["leagues", "tournaments", "players", "teams", "mapping_data"]
+   esports_data_files = ["leagues", "tournaments", "players", "teams", "mapping_data",
+                         "tournaments_without_game_data", "unfiltered_players",
+                         "unfiltered_teams"]
    for file_name in esports_data_files:
        data = download_gzip_and_load_json(f"{directory}/{file_name}")
        if data:

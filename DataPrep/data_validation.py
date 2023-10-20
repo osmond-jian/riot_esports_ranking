@@ -63,4 +63,4 @@ if __name__ == "__main__":
     with open(f'C:/Users/akmar/PycharmProjects/lolpowerrank/riot_esports_ranking/esports-data/tournaments.json', 'r') as f:
         data = json.load(f)
     # Validate the sample data
-    validate_json_structure(data)
+
