@@ -83,7 +83,8 @@ def player_mapping(df:pd.DataFrame,filepath:str,file:str = 'players.json')->pd.D
         df[f'player_{i}'] = df[f'participantmapping_{i}'].map(player_id_to_handle)
     return df
 
-def team_mapping(df:pd.DataFrame,filepath:str,file:str = 'teams.json')->pd.DataFrame:
+def team_mapping(df:pd.DataFrame,filepath:str,file:str = 'teams.json',
+                 extra_teams_path:str = "C:/Users/akmar/PycharmProjects/lolpowerrank/riot_esports_ranking/DataPrep/Data_for_Merging/missing_team_mapping.csv")->pd.DataFrame:
     """Creates a dict to map team data to game_data
 
     Args:
@@ -96,14 +97,18 @@ def team_mapping(df:pd.DataFrame,filepath:str,file:str = 'teams.json')->pd.DataF
     """
     with open(filepath+file, 'r') as f:
         data = json.load(f)
+    
+    data_2 = pd.read_csv(extra_teams_path)
+    missing_dict = data_2.set_index('team_id')['slug'].to_dict()
 
     # Create a mapping dictionary from player_id to handle
     team_id_to_slug = {team['team_id']: team['slug'] for team in data}
+    team_id_to_slug.update(missing_dict)
     # Create new columns in the original DataFrame
     df[f'team_100'] = df[f'teammapping_100'].map(team_id_to_slug)
     df[f'team_200'] = df[f'teammapping_200'].map(team_id_to_slug)
 
-    return df
+    return df, team_id_to_slug
 
 def league_mapping(filepath:str,file:str = 'leagues.json')->pd.DataFrame:
     """Flattens league data so it can be combined with tournament data
