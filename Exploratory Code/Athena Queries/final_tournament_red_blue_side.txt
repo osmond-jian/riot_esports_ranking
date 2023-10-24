@@ -1,0 +1,60 @@
+CREATE OR REPLACE VIEW final_tournament_red_blue_side AS
+SELECT
+  trv.tournament_name,
+  trv.tournament_slug,
+  trv.tournament_id,
+  trv.league_id,
+  trv.stage_name,
+  trv.section_name,
+  trv.team_id,
+  tn.name AS team_name,
+  tn.slug AS team_slug,
+  tn.acronym AS team_acronym,
+  trv.strategy_type,
+  trv.strategy_count,
+  trv.total_match_wins,
+  trv.total_match_losses,
+  
+    -- Calculating Match Win Percentage
+  CASE
+    WHEN (trv.total_match_wins + trv.total_match_losses + trv.total_game_ties_record) = 0 THEN 0
+    ELSE (trv.total_match_wins * 100.0) / (trv.total_match_wins + trv.total_match_losses + trv.total_game_ties_record)
+  END AS match_win_percentage,
+  
+  trv.total_game_wins_record as total_wins_record,
+  trv.total_game_losses_record as total_losses_record,
+  trv.total_game_ties_record as total_ties_record,
+
+  -- Game Stats
+  gsv.total_game_wins,
+  gsv.total_game_losses,
+  gsv.blue_side_wins,
+  gsv.blue_side_losses,
+  gsv.red_side_wins,
+  gsv.red_side_losses,
+  
+    -- Calculating Game Win Percentage
+  CASE
+    WHEN (gsv.total_game_wins + gsv.total_game_losses) = 0 THEN 0
+    ELSE (gsv.total_game_wins * 100.0) / (gsv.total_game_wins + gsv.total_game_losses)
+  END AS game_win_percentage
+  
+FROM
+  team_record_view trv
+  
+INNER JOIN
+  game_stats_view gsv 
+ON 
+  trv.tournament_name = gsv.tournament_name AND
+  trv.tournament_slug = gsv.tournament_slug AND
+  trv.tournament_id = gsv.tournament_id AND
+  trv.league_id = gsv.league_id AND
+  trv.stage_name = gsv.stage_name AND
+  trv.section_name = gsv.section_name AND
+  trv.team_id = gsv.team_id
+  
+INNER JOIN
+  team_names tn
+ON 
+  trv.team_id = tn.team_id;
+

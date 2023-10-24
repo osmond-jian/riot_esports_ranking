@@ -14,4 +14,4 @@ function getTournamentsFromLeagueId(id) {
 // getTournamentsFromLeagueId("98767975604431411"); //worlds
 // getTournamentsFromLeagueId("98767991299243165"); //test
 
-module.exports = {getTournamentsFromLeagueId}
+module.exports = { getTournamentsFromLeagueId }

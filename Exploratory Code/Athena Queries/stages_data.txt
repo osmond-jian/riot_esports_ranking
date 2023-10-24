@@ -1,0 +1,10 @@
+CREATE OR REPLACE VIEW stages_data AS (
+  SELECT
+    name as tournament_name,
+    slug as tournament_slug,
+    id as tournament_id,
+    leagueid as league_id,
+    stage
+  FROM lol."tournaments"
+  CROSS JOIN UNNEST(stages) AS t(stage)
+);

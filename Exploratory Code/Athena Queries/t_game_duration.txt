@@ -1,0 +1,8 @@
+CREATE TABLE t_game_duration AS
+SELECT
+eventtime,
+platformgameid,
+gametime,
+gamename /* note that this is a little weird, it looks like "gameid|game2" instead of gameid */
+FROM lol.games
+WHERE eventtype = 'game_end';

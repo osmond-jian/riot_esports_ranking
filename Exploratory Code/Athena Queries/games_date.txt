@@ -1,0 +1,9 @@
+Create OR Replace VIEW games_date as
+    select
+        eventtime,
+        eventtype,
+        platformgameid
+    from lol.games
+    
+    where
+        eventtype = 'game_info'

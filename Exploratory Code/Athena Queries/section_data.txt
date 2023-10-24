@@ -1,0 +1,11 @@
+CREATE OR REPLACE VIEW sections_data AS (
+  SELECT
+    sd.tournament_name,
+    sd.tournament_slug,
+    sd.tournament_id,
+    sd.league_id,
+    sd.stage.name AS stage_name,
+    section
+  FROM stages_data sd
+  CROSS JOIN UNNEST(sd.stage.sections) AS t(section)
+);

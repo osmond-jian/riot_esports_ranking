@@ -6,11 +6,13 @@ const fs = require('fs');
 function tournamentLookup(tournamentArray) {
   // console.log(tournamentArray[0].id);
   let output = [];
+  let errorArray = [];
   const data = fs.readFileSync('esports-data/tournaments.json', {encoding:'utf8', flag: 'r'})
   for (let i=0; i<tournamentArray.length; i++){
     let tournamentData = JSON.parse(data).filter((obj) => obj.id === tournamentArray[i].id);
     if (tournamentData.length === 0) {
       console.log(`No mapping data found for tournament id:${tournamentArray[i].id}`);
+      errorArray.push(tournamentArray[i]);
     } else {
       // console.log(tournamentData[0].stages);
       output.push(
@@ -22,24 +24,39 @@ function tournamentLookup(tournamentArray) {
       tournamentData[0].stages.forEach((obj) => {
         output.push({stageName:obj.slug}); //e.g groups
         obj.sections.forEach((obj) => {
+          //ranking feature is too janky
+            // if (obj.ranking != undefined){
+            //   output.push(obj.ranking);
+            //   console.log(obj.ranking);
+            // }
           output.push({sectionName:obj.name}); //e.g. group A
           obj.matches.forEach((obj) => {
+            // console.log(Object.keys(obj));
             // output.push(
             //   {
             //     matchId:obj.id,
             //     strategy:obj.strategy,
             //   });
-            obj.games.forEach((obj) => output.push(obj))
+            obj.games.forEach((obj) => output.push(obj));
+
           })})});
     }
+    updateConsoleMessage(`Processed ${i+1} tournaments!`);
+    console.log();
   }
   // console.log(output.length, output);
-  return output;
+  return [output, errorArray];
 }
 
+//stylizing the console.logs to give the illusion of progress... this updates the message to one line instead of spam printing
+function updateConsoleMessage(message) {
+  process.stdout.clearLine();  // Clear the current line
+  process.stdout.cursorTo(0); // Move the cursor to the beginning of the line
+  process.stdout.write(message); // Write the updated message
+}
 
 // tournamentLookup([{id:"110733838935136200"}]);//easy
-// tournamentLookup([{id:"109428868589633757"}]); //hARD
+// tournamentLookup([{id:"108471075292469758"}]); //hARD
 // tournamentLookup([
 //   { id: '110303581083678395' },
 //   { id: '109517090066605615' },

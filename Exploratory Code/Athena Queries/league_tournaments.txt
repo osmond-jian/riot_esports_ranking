@@ -1,0 +1,9 @@
+CREATE OR REPLACE VIEW lol.league_tournaments AS
+SELECT
+    "name" AS league_name,
+    "slug" AS league_slug,
+    "id" AS league_id,
+    "region" AS league_region,
+    tournament.id AS tournament_id
+FROM lol."leagues"
+CROSS JOIN UNNEST(tournaments) AS t(tournament);

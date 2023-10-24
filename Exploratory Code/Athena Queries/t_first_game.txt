@@ -1,0 +1,6 @@
+CREATE TABLE t_first_game AS
+SELECT
+    md.match.id AS match_id,
+    MIN(md.match.games[1].id) AS first_game_id
+FROM matches_data md
+GROUP BY md.match.id;

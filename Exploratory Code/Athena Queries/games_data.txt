@@ -1,0 +1,15 @@
+CREATE OR REPLACE VIEW games_data AS (
+  SELECT
+    md.tournament_name,
+    md.tournament_slug,
+    md.tournament_id,
+    md.league_id,
+    md.stage_name,
+    md.section_name,
+    md.match.id AS match_id,
+    game.id AS game_id,
+    team
+  FROM matches_data md
+  CROSS JOIN UNNEST(md.match.games) AS g(game)
+  CROSS JOIN UNNEST(game.teams) AS t(team)
+)

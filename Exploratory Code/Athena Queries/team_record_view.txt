@@ -1,0 +1,74 @@
+CREATE OR REPLACE VIEW team_record_view AS
+WITH stages_data AS (
+  SELECT
+    name as tournament_name,
+    slug as tournament_slug,
+    id as tournament_id,
+    leagueid as league_id,
+    stage
+  FROM lol."tournaments"
+  CROSS JOIN UNNEST(stages) AS t(stage)
+),
+
+sections_data AS (
+  SELECT
+    sd.tournament_name,
+    sd.tournament_slug,
+    sd.tournament_id,
+    sd.league_id,
+    sd.stage.name AS stage_name,
+    section
+  FROM stages_data sd
+  CROSS JOIN UNNEST(sd.stage.sections) AS t(section)
+),
+
+matches_data AS (
+  SELECT
+    sd.tournament_name,
+    sd.tournament_slug,
+    sd.tournament_id,
+    sd.league_id,
+    sd.stage_name,
+    sd.section.name AS section_name,
+    match
+  FROM sections_data sd
+  CROSS JOIN UNNEST(sd.section.matches) AS t(match)
+),
+
+teams_data AS (
+  SELECT
+    md.tournament_name,
+    md.tournament_slug,
+    md.tournament_id,
+    md.league_id,
+    md.stage_name,
+    md.section_name,
+    md.match.id AS match_id,
+    team
+  FROM matches_data md
+  CROSS JOIN UNNEST(md.match.teams) AS t(team)
+)
+
+SELECT
+  td.tournament_name,
+  td.tournament_slug,
+  td.tournament_id,
+  td.league_id,
+  td.stage_name,
+  td.section_name,
+  td.match_id,
+  td.team.id AS team_id,
+  SUM(td.team.record.wins) AS total_wins,
+  SUM(td.team.record.losses) AS total_losses,
+  SUM(td.team.record.ties) AS total_ties
+FROM
+  teams_data td
+GROUP BY
+  td.tournament_name,
+  td.tournament_slug,
+  td.tournament_id,
+  td.league_id,
+  td.stage_name,
+  td.section_name,
+  td.match_id,
+  td.team.id;
